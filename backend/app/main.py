@@ -28,7 +28,15 @@ async def lifespan(app:FastAPI):
     if settings.environment=="development": Base.metadata.create_all(bind=engine)
     yield
 
-app=FastAPI(title=settings.app_name,version="1.0.0",description="Indian real-estate marketplace API",lifespan=lifespan)
+app=FastAPI(
+    title=settings.app_name,
+    version="1.0.0",
+    description="Indian real-estate marketplace API. Use the Authorize control to test authenticated endpoints with a Firebase ID token.",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+    lifespan=lifespan,
+)
 app.add_middleware(SensitiveRateLimitMiddleware)
 app.add_middleware(CORSMiddleware,allow_origins=settings.cors_list,allow_credentials=True,allow_methods=["GET","POST","PUT","PATCH","DELETE","OPTIONS"],allow_headers=["Authorization","Content-Type","X-Dev-User"])
 app.include_router(router,prefix=settings.api_prefix)

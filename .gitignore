@@ -1,3 +1,13 @@
 node_modules/
 dist/
 .next/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+.coverage
+htmlcov/

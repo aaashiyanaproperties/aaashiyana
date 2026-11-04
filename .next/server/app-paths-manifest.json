@@ -1,9 +1,0 @@
-{
-  "/page": "app/page.js",
-  "/buy/page": "app/buy/page.js",
-  "/rent/page": "app/rent/page.js",
-  "/commercial/page": "app/commercial/page.js",
-  "/projects/page": "app/projects/page.js",
-  "/agents/page": "app/agents/page.js",
-  "/about/page": "app/about/page.js"
-}

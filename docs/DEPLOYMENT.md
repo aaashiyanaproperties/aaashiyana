@@ -9,6 +9,7 @@
 ## Backend
 - Deploy `backend/` as a Python 3.12 service; install `backend/requirements.txt`.
 - Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT` (set working directory to `backend`).
+- The interactive Swagger UI is available at `<backend HTTPS URL>/docs`; the OpenAPI schema is at `/openapi.json`. Use **Authorize** in Swagger UI with a Firebase ID token to test authenticated endpoints.
 - Configure `DATABASE_URL`, `ENVIRONMENT=production`, `DEV_AUTH_BYPASS=false`, `CORS_ORIGINS`, Firebase Admin JSON and Cloudinary secrets and optional SMTP/CONTACT_EMAIL settings.
 - Run `alembic upgrade head` as a release/pre-deploy command. Run seed only for a new development/staging database.
 

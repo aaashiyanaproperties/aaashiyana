@@ -1,11 +1,18 @@
 import json
 from fastapi import Depends, HTTPException, Header
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models import User, UserRole
 from app.core.config import settings
 
 _firebase_app=None
+bearer_scheme=HTTPBearer(
+    scheme_name="FirebaseBearerAuth",
+    description="Firebase ID token. Enter the token only; Swagger adds the Bearer prefix.",
+    auto_error=False,
+)
+
 def verify_token(token:str)->dict:
     global _firebase_app
     if not settings.firebase_service_account_json:
@@ -20,16 +27,16 @@ def verify_token(token:str)->dict:
     except HTTPException: raise
     except Exception as exc: raise HTTPException(401,"Invalid or expired Firebase token") from exc
 
-def current_user(authorization:str|None=Header(default=None), x_dev_user:str|None=Header(default=None), db:Session=Depends(get_db)) -> User:
+def current_user(credentials:HTTPAuthorizationCredentials|None=Depends(bearer_scheme), x_dev_user:str|None=Header(default=None), db:Session=Depends(get_db)) -> User:
     if settings.dev_auth_bypass and x_dev_user:
         user=db.query(User).filter(User.email==x_dev_user).first()
         if not user:
             user=User(email=x_dev_user,full_name="Local development user")
             db.add(user); db.flush(); db.add(UserRole(user_id=user.id,role="seller")); db.commit(); db.refresh(user)
         return user
-    if not authorization or not authorization.lower().startswith("bearer "):
+    if not credentials:
         raise HTTPException(401,"Sign in required")
-    claims=verify_token(authorization.split(" ",1)[1])
+    claims=verify_token(credentials.credentials)
     uid=claims.get("uid")
     user=db.query(User).filter(User.firebase_uid==uid).first()
     if not user:
