@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import logging
 import time
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,8 +8,12 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from app.core.config import settings
 from app.api.routes import router
-from app.db.session import Base, engine
+from app.db.datasource import data_source
+from app.models.base import Base
 from app import models  # noqa: F401 - register SQLAlchemy metadata
+from app.services.errors import ServiceError
+
+logger = logging.getLogger(__name__)
 
 class SensitiveRateLimitMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):
@@ -25,7 +30,8 @@ class SensitiveRateLimitMiddleware(BaseHTTPMiddleware):
 
 @asynccontextmanager
 async def lifespan(app:FastAPI):
-    if settings.environment=="development": Base.metadata.create_all(bind=engine)
+    if settings.environment=="development":
+        Base.metadata.create_all(bind=data_source.engine)
     yield
 
 app=FastAPI(
@@ -46,5 +52,12 @@ def root(): return {"name":"Aashiyana API","docs":"/docs","health":settings.api_
 
 @app.exception_handler(Exception)
 async def unhandled_exception(request,exc):
-    # Do not leak SQL or secrets to clients. Production logs should capture traceback at the host.
+    logger.error(
+        "Unhandled API exception",
+        exc_info=(type(exc), exc, exc.__traceback__),
+    )
     return JSONResponse(status_code=500,content={"detail":"An unexpected server error occurred"})
+
+@app.exception_handler(ServiceError)
+async def service_error_handler(request, exc: ServiceError):
+    return JSONResponse(status_code=exc.status_code,content={"detail":exc.detail})

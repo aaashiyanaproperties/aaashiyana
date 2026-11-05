@@ -1,10 +1,11 @@
 import json
 from fastapi import Depends, HTTPException, Header
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy.orm import Session
-from app.db.session import get_db
-from app.models import User, UserRole
+from sqlalchemy import Connection
+
+from app.db.datasource import data_source
 from app.core.config import settings
+from app.services.identity import IdentityService, UserContext
 
 _firebase_app=None
 bearer_scheme=HTTPBearer(
@@ -27,30 +28,34 @@ def verify_token(token:str)->dict:
     except HTTPException: raise
     except Exception as exc: raise HTTPException(401,"Invalid or expired Firebase token") from exc
 
-def current_user(credentials:HTTPAuthorizationCredentials|None=Depends(bearer_scheme), x_dev_user:str|None=Header(default=None), db:Session=Depends(get_db)) -> User:
+def current_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    x_dev_user: str | None = Header(default=None),
+    db: Connection = Depends(data_source.get_connection),
+) -> UserContext:
+    identity = IdentityService(db)
     if settings.dev_auth_bypass and x_dev_user:
-        user=db.query(User).filter(User.email==x_dev_user).first()
-        if not user:
-            user=User(email=x_dev_user,full_name="Local development user")
-            db.add(user); db.flush(); db.add(UserRole(user_id=user.id,role="seller")); db.commit(); db.refresh(user)
-        return user
+        return identity.by_dev_email(x_dev_user)
     if not credentials:
         raise HTTPException(401,"Sign in required")
     claims=verify_token(credentials.credentials)
-    uid=claims.get("uid")
-    user=db.query(User).filter(User.firebase_uid==uid).first()
-    if not user:
-        user=User(firebase_uid=uid,email=claims.get("email"),phone=claims.get("phone_number"),full_name=claims.get("name") or "Aashiyana user",avatar_url=claims.get("picture"))
-        db.add(user); db.flush(); db.add(UserRole(user_id=user.id,role="buyer")); db.commit(); db.refresh(user)
-    return user
+    try:
+        return identity.by_firebase_claims(claims)
+    except ValueError as exc:
+        raise HTTPException(401,"Invalid or expired Firebase token") from exc
 
-def optional_user(authorization:str|None=Header(default=None), db:Session=Depends(get_db)):
-    if not authorization or not authorization.lower().startswith("bearer "): return None
-    claims=verify_token(authorization.split(" ",1)[1]); return db.query(User).filter(User.firebase_uid==claims.get("uid")).first()
+def optional_user(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    db: Connection = Depends(data_source.get_connection),
+) -> UserContext | None:
+    if not credentials:
+        return None
+    claims=verify_token(credentials.credentials)
+    return IdentityService(db).optional_by_firebase_claims(claims)
 
 def require_roles(*roles):
-    def checker(user:User=Depends(current_user), db:Session=Depends(get_db)):
-        user_roles={r.role for r in user.roles}
-        if not user_roles.intersection(roles): raise HTTPException(403,"Insufficient permissions")
+    def checker(user: UserContext = Depends(current_user)) -> UserContext:
+        if not set(user.roles).intersection(roles):
+            raise HTTPException(403,"Insufficient permissions")
         return user
     return checker

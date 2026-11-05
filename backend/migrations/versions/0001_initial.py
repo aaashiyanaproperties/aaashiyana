@@ -1,6 +1,6 @@
 """Initial Aashiyana marketplace schema"""
 from alembic import op
-from app.db.session import Base
+from app.models.base import Base
 from app import models
 revision="0001_initial"
 down_revision=None

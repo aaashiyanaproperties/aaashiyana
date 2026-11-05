@@ -11,6 +11,7 @@
 - Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT` (set working directory to `backend`).
 - The interactive Swagger UI is available at `<backend HTTPS URL>/docs`; the OpenAPI schema is at `/openapi.json`. Use **Authorize** in Swagger UI with a Firebase ID token to test authenticated endpoints.
 - Configure `DATABASE_URL`, `ENVIRONMENT=production`, `DEV_AUTH_BYPASS=false`, `CORS_ORIGINS`, Firebase Admin JSON and Cloudinary secrets and optional SMTP/CONTACT_EMAIL settings.
+- Optional SQLAlchemy Core datasource pool settings: `DB_POOL_SIZE` (default `5`), `DB_MAX_OVERFLOW` (default `10`) and `DB_POOL_RECYCLE_SECONDS` (default `1800`).
 - Run `alembic upgrade head` as a release/pre-deploy command. Run seed only for a new development/staging database.
 
 ## Database

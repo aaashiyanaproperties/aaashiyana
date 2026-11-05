@@ -25,14 +25,26 @@ def test_inquiry_visit_favourite_and_admin_moderation(client):
     payload={'title':'Sunny two bedroom residence in Pune','description':'An airy residence with a generous living room and practical access to transport, schools and daily essentials.','transaction_type':'buy','property_type':'Apartment','city':'Pune','state':'Maharashtra','locality':'Kharadi','price':11200000,'bedrooms':2,'bathrooms':2,'carpet_area':1150,'status':'pending','amenities':['Lift'],'images':[]}
     created=client.post('/api/properties',json=payload,headers=seller).json()
     client.get('/api/me',headers={'X-Dev-User':'workflow-admin@example.test'})
-    from app.db.session import SessionLocal
-    from app.models import User,UserRole
-    db=SessionLocal()
-    try:
-        admin=db.query(User).filter_by(email='workflow-admin@example.test').first()
-        db.add(UserRole(user_id=admin.id,role='admin'));db.commit()
-    finally: db.close()
+    from app.dao.repositories import UserDao
+    from app.dao.template import NamedParameterJdbcTemplate
+    from app.db.datasource import data_source
+    with data_source.engine.begin() as db:
+        admin=UserDao(db).by_email('workflow-admin@example.test')
+        NamedParameterJdbcTemplate(db).insert(
+            'user_roles.insert',
+            {'user_id':admin['id'],'role':'admin'},
+        )
     admin_headers={'X-Dev-User':'workflow-admin@example.test'}
+    setting=client.put(
+        '/api/admin/settings/property.search',
+        json={'value':{'max_page_size':60}},
+        headers=admin_headers,
+    )
+    assert setting.status_code==200 and setting.json()['value']=={'max_page_size':60}
+    settings=client.get('/api/admin/settings',headers=admin_headers)
+    assert settings.status_code==200 and settings.json()[0]['value']=={'max_page_size':60}
+    users=client.get('/api/admin/users',headers=admin_headers)
+    assert users.status_code==200 and any(row['email']=='workflow-admin@example.test' for row in users.json())
     moderated=client.post(f"/api/admin/properties/{created['id']}/moderate",json={'decision':'approve'},headers=admin_headers)
     assert moderated.status_code==200 and moderated.json()['status']=='published'
     saved=client.post(f"/api/properties/{created['id']}/favourite",headers=seller)

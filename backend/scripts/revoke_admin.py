@@ -1,9 +1,25 @@
 import argparse
-from app.db.session import SessionLocal
-from app.models import User,UserRole
-p=argparse.ArgumentParser();p.add_argument('email');a=p.parse_args();db=SessionLocal()
-try:
- u=db.query(User).filter_by(email=a.email).first()
- if not u: raise SystemExit('User not found')
- db.query(UserRole).filter_by(user_id=u.id,role='admin').delete();db.commit();print('Admin role revoked')
-finally: db.close()
+
+from app.dao.repositories import UserDao
+from app.dao.template import NamedParameterJdbcTemplate
+from app.db.datasource import data_source
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Revoke an Aashiyana user's admin role")
+    parser.add_argument("email")
+    args = parser.parse_args()
+
+    with data_source.engine.begin() as connection:
+        user = UserDao(connection).by_email(args.email)
+        if user is None:
+            raise SystemExit("User not found")
+        NamedParameterJdbcTemplate(connection).update(
+            "user_roles.delete_admin",
+            {"user_id": user["id"]},
+        )
+    print("Admin role revoked")
+
+
+if __name__ == "__main__":
+    main()

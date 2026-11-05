@@ -3,7 +3,7 @@ from datetime import datetime, date, timezone
 from sqlalchemy import String, Text, Boolean, DateTime, Date, Integer, Float, ForeignKey, Numeric, JSON, UniqueConstraint, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.dialects.postgresql import UUID
-from app.db.session import Base
+from app.models.base import Base
 
 def uid(): return str(uuid.uuid4())
 def utcnow(): return datetime.now(timezone.utc).replace(tzinfo=None)

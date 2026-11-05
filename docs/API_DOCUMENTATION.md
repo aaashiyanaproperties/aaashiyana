@@ -2,6 +2,8 @@
 
 Base path: `/api`. Interactive OpenAPI documentation is exposed at `/docs`, with the raw schema at `/openapi.json` and ReDoc at `/redoc`.
 
+The backend uses endpoint → service → DAO layers. Runtime SQL is maintained in `backend/app/dao/sql.properties`; see [BACKEND_ARCHITECTURE.md](./BACKEND_ARCHITECTURE.md) for the datasource and named-parameter query conventions.
+
 Open `http://localhost:8000/docs` when running the local Docker Compose stack, or open `<backend HTTPS URL>/docs` after deploying the API. In Swagger UI, use **Authorize** and enter a Firebase ID token (without the `Bearer ` prefix) to test protected endpoints. The local Compose stack enables the development-only auth bypass; for those requests, use the `X-Dev-User` header field instead. Do not enable that bypass in production.
 
 ## Public

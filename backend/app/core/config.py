@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     email_from: str | None = None
     contact_email: str | None = None
     rate_limit_enabled: bool = True
+    db_pool_size: int = 5
+    db_max_overflow: int = 10
+    db_pool_recycle_seconds: int = 1800
 
     @property
     def cors_list(self) -> list[str]:
