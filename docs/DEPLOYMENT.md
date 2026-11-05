@@ -1,4 +1,9 @@
-# Deployment outline
+---
+title: "Deployment outline"
+description: "Configure and deploy the Aashiyana frontend, FastAPI backend, and PostgreSQL database."
+---
+
+## Deployment outline
 
 ## Frontend (Vercel)
 - Import the repository and set Root Directory to the project root (or the frontend root if split during deployment).
@@ -10,7 +15,9 @@
 - Deploy `backend/` as a Python 3.12 service; install `backend/requirements.txt`.
 - Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT` (set working directory to `backend`).
 - The interactive Swagger UI is available at `<backend HTTPS URL>/docs`; the OpenAPI schema is at `/openapi.json`. Use **Authorize** in Swagger UI with a Firebase ID token to test authenticated endpoints.
-- Configure `DATABASE_URL`, `ENVIRONMENT=production`, `DEV_AUTH_BYPASS=false`, `CORS_ORIGINS`, Firebase Admin JSON and Cloudinary secrets and optional SMTP/CONTACT_EMAIL settings.
+- Configure `ENVIRONMENT=production`, `DEV_AUTH_BYPASS=false`, `CORS_ORIGINS`, Firebase Admin JSON and Cloudinary secrets and optional SMTP/CONTACT_EMAIL settings.
+- For Supabase on Vercel, set `DATABASE_URL` to the Supabase Transaction Pooler URL. Replace the password placeholder, URL-encode reserved characters in the password, and use the SQLAlchemy URL scheme `postgresql+psycopg://`. The datasource disables psycopg prepared statements for transaction-pooler compatibility.
+- Use the Supabase Session Pooler URL when running `alembic upgrade head`; use the Transaction Pooler URL for Vercel runtime traffic.
 - Optional SQLAlchemy Core datasource pool settings: `DB_POOL_SIZE` (default `5`), `DB_MAX_OVERFLOW` (default `10`) and `DB_POOL_RECYCLE_SECONDS` (default `1800`).
 - Run `alembic upgrade head` as a release/pre-deploy command. Run seed only for a new development/staging database.
 
